@@ -20,10 +20,8 @@ package:
   version: {{ version }}
 
 source:
-  # for local testing use a tarball including submodules
-  # git_url: https://github.com/pytorch/pytorch.git
-  # git_tag: v{{ version }}
-  path: "../../2.2.2"
+  url: https://github.com/pytorch/pytorch/releases/download/v{{ version }}/pytorch-v{{ version }}.tar.gz
+  sha256: 85effbcce037bffa290aea775c9a4bad5f769cb229583450c40055501ee1acd7
   patches:
     - patches/nvml.patch  # [cuda_compiler_version == "11.2"]
     # The patch below is probably OK for other versions too, but it is untested with them
@@ -52,14 +50,17 @@ build:
   ignore_run_exports:
     - python *                               # [megabuild]
     - numpy *                                # [megabuild]
-  skip: true  # [win and cuda_compiler_version != "None"]
-  skip: true  # [cuda_compiler_version != "None" and linux64 and blas_impl != "mkl"]
-  skip: true  # [cuda_compiler_version == "10.2"]
-  skip: true  # [cuda_compiler_version == "11.0"]
-  skip: true  # [cuda_compiler_version == "11.1"]
+  
+  # Disabling everything but windows cpu now for testing purposes
+  skip: true  # [not win or cuda_compiler_version != "None"]
+  
+  # skip: true  # [cuda_compiler_version != "None" and linux64 and blas_impl != "mkl"]
+  # skip: true  # [cuda_compiler_version == "10.2"]
+  # skip: true  # [cuda_compiler_version == "11.0"]
+  # skip: true  # [cuda_compiler_version == "11.1"]
   # 2024/04 This build seems to fail due to disk space on the CIs
   # We can potentially re-enable it at a later time
-  skip: true  # [cuda_compiler_version == "11.8" and aarch64]
+  # skip: true  # [cuda_compiler_version == "11.8" and aarch64]
 
 requirements:
   # Keep this list synchronized (except for python*, numpy*) in outputs
@@ -106,11 +107,11 @@ requirements:
   host:
     # GPU requirements
     - cudnn                           # [cuda_compiler_version != "None"]
-    - nccl                            # [cuda_compiler_version != "None"]
+    - nccl                            # [cuda_compiler_version != "None" and linux]
     - magma                           # [cuda_compiler_version != "None"]
     - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
     {% if cuda_major >= 12 %}
-    - cuda-driver-dev
+    - cuda-driver-dev                 # [linux]
     - cuda-cudart-dev
     - cuda-nvrtc-dev
     - cuda-nvtx-dev
@@ -188,7 +189,7 @@ outputs:
         - {{ compiler('cxx') }}
         - {{ compiler('cuda') }}    # [cuda_compiler_version != "None"]
         {% if cuda_major >= 12 %}
-        - cuda-driver-dev                        # [build_platform != target_platform]
+        - cuda-driver-dev                        # [build_platform != target_platform and linux]
         - cuda-cudart-dev                        # [build_platform != target_platform]
         - cuda-nvrtc-dev                         # [build_platform != target_platform]
         - cuda-nvtx-dev                          # [build_platform != target_platform]
@@ -221,7 +222,7 @@ outputs:
         - magma                           # [cuda_compiler_version != "None"]
         - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
         {% if cuda_major >= 12 %}
-        - cuda-driver-dev
+        - cuda-driver-dev                 # [linux]
         - cuda-cudart-dev
         - cuda-nvrtc-dev
         - cuda-nvtx-dev
